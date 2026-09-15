@@ -1,0 +1,552 @@
+<!DOCTYPE html>
+<html lang="es">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>Calculadora de Capacidad de Pago | Riesgo Crediticio</title>
+<style>
+  :root {
+    color-scheme: light;
+    --surface-1:      #fcfcfb;
+    --surface-2:      #ffffff;
+    --page-plane:     #f4f5f7;
+    --text-primary:   #0b0b0b;
+    --text-secondary: #52514e;
+    --text-muted:     #898781;
+    --border:         rgba(11,11,11,0.10);
+    --gridline:       #e1e0d9;
+    --brand:          #184f95;
+    --brand-dark:     #103a70;
+    --status-good:      #0ca30c;
+    --status-good-bg:   #e8f8e8;
+    --status-good-bd:   #0ca30c;
+    --status-critical:    #d03b3b;
+    --status-critical-bg: #fbe9e9;
+    --status-critical-bd: #d03b3b;
+    --focus-ring: #2a78d6;
+  }
+
+  * { box-sizing: border-box; }
+
+  body {
+    margin: 0;
+    padding-block: 32px;
+    padding-inline: 16px;
+    background: var(--page-plane);
+    color: var(--text-primary);
+    font-family: system-ui, -apple-system, "Segoe UI", sans-serif;
+    -webkit-font-smoothing: antialiased;
+  }
+
+  .app {
+    max-width: 760px;
+    margin: 0 auto;
+  }
+
+  header.app-header {
+    margin-bottom: 24px;
+  }
+
+  header.app-header h1 {
+    font-size: 1.5rem;
+    margin: 0 0 6px 0;
+    color: var(--text-primary);
+  }
+
+  header.app-header p {
+    margin: 0;
+    color: var(--text-secondary);
+    font-size: 0.92rem;
+    line-height: 1.5;
+  }
+
+  .card {
+    background: var(--surface-2);
+    border: 1px solid var(--border);
+    border-radius: 12px;
+    padding: 24px;
+    margin-bottom: 20px;
+    box-shadow: 0 1px 3px rgba(11,11,11,0.06);
+  }
+
+  .card h2 {
+    font-size: 1.05rem;
+    margin: 0 0 18px 0;
+    color: var(--text-primary);
+    display: flex;
+    align-items: center;
+    gap: 8px;
+  }
+
+  .field {
+    margin-bottom: 20px;
+  }
+
+  .field:last-child { margin-bottom: 0; }
+
+  .field label {
+    display: block;
+    font-weight: 600;
+    font-size: 0.92rem;
+    color: var(--text-primary);
+    margin-bottom: 4px;
+  }
+
+  .field .help-text {
+    font-size: 0.8rem;
+    color: var(--text-secondary);
+    margin-bottom: 8px;
+    line-height: 1.45;
+  }
+
+  .input-wrap {
+    position: relative;
+  }
+
+  .input-wrap .currency-prefix {
+    position: absolute;
+    left: 12px;
+    top: 50%;
+    transform: translateY(-50%);
+    color: var(--text-muted);
+    font-weight: 600;
+    font-size: 0.95rem;
+    pointer-events: none;
+  }
+
+  input[type="number"] {
+    width: 100%;
+    padding: 11px 12px 11px 40px;
+    font-size: 1rem;
+    border: 1px solid var(--gridline);
+    border-radius: 8px;
+    background: var(--surface-1);
+    color: var(--text-primary);
+    font-family: inherit;
+    transition: border-color 0.15s, box-shadow 0.15s;
+  }
+
+  input[type="number"]:focus {
+    outline: none;
+    border-color: var(--focus-ring);
+    box-shadow: 0 0 0 3px rgba(42,120,214,0.18);
+  }
+
+  input[type="number"]::-webkit-outer-spin-button,
+  input[type="number"]::-webkit-inner-spin-button {
+    opacity: 1;
+  }
+
+  .field-error {
+    font-size: 0.78rem;
+    color: var(--status-critical);
+    margin-top: 5px;
+    min-height: 1.1em;
+  }
+
+  /* Results card */
+  .result-card {
+    border: 2px solid var(--gridline);
+    transition: border-color 0.2s, background 0.2s;
+  }
+
+  .result-card.state-approved {
+    border-color: var(--status-good-bd);
+    background: linear-gradient(180deg, var(--status-good-bg), var(--surface-2) 65%);
+  }
+
+  .result-card.state-rejected {
+    border-color: var(--status-critical-bd);
+    background: linear-gradient(180deg, var(--status-critical-bg), var(--surface-2) 65%);
+  }
+
+  .result-card.state-empty {
+    border-color: var(--gridline);
+  }
+
+  .status-badge {
+    display: inline-flex;
+    align-items: center;
+    gap: 8px;
+    padding: 8px 16px;
+    border-radius: 999px;
+    font-weight: 700;
+    font-size: 1.05rem;
+    letter-spacing: 0.01em;
+  }
+
+  .status-badge.approved {
+    background: var(--status-good);
+    color: #ffffff;
+  }
+
+  .status-badge.rejected {
+    background: var(--status-critical);
+    color: #ffffff;
+  }
+
+  .status-badge.pending {
+    background: var(--gridline);
+    color: var(--text-secondary);
+  }
+
+  .status-badge svg { width: 18px; height: 18px; flex: none; }
+
+  .result-row {
+    display: flex;
+    justify-content: space-between;
+    align-items: baseline;
+    margin-top: 18px;
+  }
+
+  .result-row .label {
+    font-size: 0.85rem;
+    color: var(--text-secondary);
+  }
+
+  .result-row .value {
+    font-size: 1.1rem;
+    font-weight: 700;
+    color: var(--text-primary);
+    font-variant-numeric: tabular-nums;
+  }
+
+  .ratio-headline {
+    display: flex;
+    align-items: baseline;
+    gap: 10px;
+    margin-top: 20px;
+  }
+
+  .ratio-headline .ratio-value {
+    font-size: 2.4rem;
+    font-weight: 700;
+    line-height: 1;
+    font-variant-numeric: tabular-nums;
+  }
+
+  .ratio-headline .ratio-value.approved { color: var(--status-good); }
+  .ratio-headline .ratio-value.rejected { color: var(--status-critical); }
+  .ratio-headline .ratio-value.pending { color: var(--text-muted); }
+
+  .ratio-headline .ratio-caption {
+    font-size: 0.85rem;
+    color: var(--text-secondary);
+  }
+
+  /* Meter */
+  .meter-wrap {
+    margin-top: 16px;
+  }
+
+  .meter-track {
+    position: relative;
+    height: 14px;
+    background: var(--gridline);
+    border-radius: 999px;
+    overflow: hidden;
+  }
+
+  .meter-fill {
+    height: 100%;
+    border-radius: 999px 0 0 999px;
+    transition: width 0.25s ease, background-color 0.25s ease;
+    background: var(--text-muted);
+  }
+
+  .meter-fill.approved { background: var(--status-good); }
+  .meter-fill.rejected { background: var(--status-critical); }
+
+  .meter-threshold {
+    position: absolute;
+    top: -3px;
+    bottom: -3px;
+    left: 30%;
+    width: 2px;
+    background: var(--text-primary);
+    opacity: 0.55;
+  }
+
+  .meter-scale {
+    display: flex;
+    justify-content: space-between;
+    margin-top: 6px;
+    font-size: 0.72rem;
+    color: var(--text-muted);
+  }
+
+  .meter-scale .threshold-label {
+    position: relative;
+    left: -18px;
+    color: var(--text-secondary);
+    font-weight: 600;
+  }
+
+  .divider {
+    border: none;
+    border-top: 1px solid var(--gridline);
+    margin: 18px 0;
+  }
+
+  .officer-note {
+    display: flex;
+    gap: 10px;
+    align-items: flex-start;
+    background: var(--surface-1);
+    border: 1px solid var(--border);
+    border-radius: 8px;
+    padding: 12px 14px;
+    font-size: 0.82rem;
+    color: var(--text-secondary);
+    line-height: 1.5;
+    margin-top: 16px;
+  }
+
+  .officer-note svg { flex: none; width: 16px; height: 16px; margin-top: 2px; color: var(--text-muted); }
+
+  footer {
+    text-align: center;
+    font-size: 0.75rem;
+    color: var(--text-muted);
+    margin-top: 24px;
+    line-height: 1.6;
+  }
+
+  @media (max-width: 480px) {
+    .ratio-headline .ratio-value { font-size: 1.9rem; }
+    .card { padding: 18px; }
+  }
+</style>
+</head>
+<body>
+<div class="app">
+
+  <header class="app-header">
+    <h1>Calculadora de Capacidad de Pago</h1>
+    <p>Herramienta de apoyo para el análisis de riesgo crediticio. Evalúa la relación cuota/ingreso (RCI) del cliente frente al límite máximo de endeudamiento del 30%.</p>
+  </header>
+
+  <div class="card">
+    <h2>Datos del cliente</h2>
+
+    <div class="field">
+      <label for="ingreso">Ingreso Mensual Neto</label>
+      <div class="help-text">Ingreso neto verificable del solicitante después de deducciones (CSS, ISR, descuentos de planilla). Use el promedio de los últimos 3 meses si el ingreso es variable o comisionado.</div>
+      <div class="input-wrap">
+        <span class="currency-prefix">B/.</span>
+        <input type="number" id="ingreso" inputmode="decimal" min="0" step="0.01" placeholder="0.00" aria-describedby="ingreso-error">
+      </div>
+      <div class="field-error" id="ingreso-error"></div>
+    </div>
+
+    <div class="field">
+      <label for="obligaciones">Obligaciones Actuales</label>
+      <div class="help-text">Suma de todas las cuotas mensuales vigentes del cliente según central de riesgo (APC) o buró de crédito: préstamos personales, hipotecarios, tarjetas de crédito (pago mínimo o el reportado) y otros financiamientos.</div>
+      <div class="input-wrap">
+        <span class="currency-prefix">B/.</span>
+        <input type="number" id="obligaciones" inputmode="decimal" min="0" step="0.01" placeholder="0.00" aria-describedby="obligaciones-error">
+      </div>
+      <div class="field-error" id="obligaciones-error"></div>
+    </div>
+
+    <div class="field">
+      <label for="cuotaNueva">Cuota del Nuevo Préstamo</label>
+      <div class="help-text">Cuota mensual estimada del préstamo que se está evaluando (según monto, plazo y tasa propuestos). No incluya seguros opcionales salvo que sean obligatorios en la estructura del crédito.</div>
+      <div class="input-wrap">
+        <span class="currency-prefix">B/.</span>
+        <input type="number" id="cuotaNueva" inputmode="decimal" min="0" step="0.01" placeholder="0.00" aria-describedby="cuotaNueva-error">
+      </div>
+      <div class="field-error" id="cuotaNueva-error"></div>
+    </div>
+  </div>
+
+  <div class="card result-card state-empty" id="resultCard">
+    <h2>Resultado del análisis</h2>
+
+    <span class="status-badge pending" id="statusBadge">
+      <svg viewBox="0 0 24 24" fill="none" id="statusIcon"><circle cx="12" cy="12" r="9" stroke="currentColor" stroke-width="2"/></svg>
+      <span id="statusText">Ingrese los datos del cliente</span>
+    </span>
+
+    <div class="ratio-headline">
+      <span class="ratio-value pending" id="ratioValue">—</span>
+      <span class="ratio-caption">Nivel de endeudamiento (RCI), límite permitido 30%</span>
+    </div>
+
+    <div class="meter-wrap">
+      <div class="meter-track">
+        <div class="meter-fill" id="meterFill" style="width:0%"></div>
+        <div class="meter-threshold" title="Límite 30%"></div>
+      </div>
+      <div class="meter-scale">
+        <span>0%</span>
+        <span class="threshold-label">30% límite</span>
+        <span>100%+</span>
+      </div>
+    </div>
+
+    <hr class="divider">
+
+    <div class="result-row">
+      <span class="label">Total de cuotas mensuales (obligaciones + nuevo préstamo)</span>
+      <span class="value" id="totalCuotas">B/. 0.00</span>
+    </div>
+    <div class="result-row">
+      <span class="label">Cuota máxima permitida (30% del ingreso)</span>
+      <span class="value" id="cuotaMaxima">B/. 0.00</span>
+    </div>
+    <div class="result-row">
+      <span class="label" id="margenLabel">Capacidad disponible</span>
+      <span class="value" id="margenValue">B/. 0.00</span>
+    </div>
+
+    <div class="officer-note">
+      <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><circle cx="12" cy="12" r="9"/><path d="M12 8v5M12 16h.01"/></svg>
+      <span id="officerNote">Complete los tres campos para calcular la relación cuota/ingreso (RCI) y obtener la recomendación automática.</span>
+    </div>
+  </div>
+
+  <footer>
+    Herramienta de apoyo para el oficial de crédito. El resultado no sustituye el análisis integral de riesgo ni las políticas de crédito vigentes de la institución.
+  </footer>
+
+</div>
+
+<script>
+(function () {
+  "use strict";
+
+  var LIMITE_RCI = 0.30;
+
+  var ingresoInput = document.getElementById("ingreso");
+  var obligacionesInput = document.getElementById("obligaciones");
+  var cuotaNuevaInput = document.getElementById("cuotaNueva");
+
+  var ingresoError = document.getElementById("ingreso-error");
+  var obligacionesError = document.getElementById("obligaciones-error");
+  var cuotaNuevaError = document.getElementById("cuotaNueva-error");
+
+  var resultCard = document.getElementById("resultCard");
+  var statusBadge = document.getElementById("statusBadge");
+  var statusIcon = document.getElementById("statusIcon");
+  var statusText = document.getElementById("statusText");
+  var ratioValue = document.getElementById("ratioValue");
+  var meterFill = document.getElementById("meterFill");
+  var totalCuotas = document.getElementById("totalCuotas");
+  var cuotaMaxima = document.getElementById("cuotaMaxima");
+  var margenLabel = document.getElementById("margenLabel");
+  var margenValue = document.getElementById("margenValue");
+  var officerNote = document.getElementById("officerNote");
+
+  var ICON_CHECK = '<path d="M5 13l4 4L19 7" stroke="currentColor" stroke-width="2.5" stroke-linecap="round" stroke-linejoin="round"/>';
+  var ICON_CROSS = '<path d="M6 6l12 12M18 6L6 18" stroke="currentColor" stroke-width="2.5" stroke-linecap="round" stroke-linejoin="round"/>';
+  var ICON_DASH = '<circle cx="12" cy="12" r="9" stroke="currentColor" stroke-width="2"/>';
+
+  function formatMoney(n) {
+    if (!isFinite(n)) n = 0;
+    return "B/. " + n.toLocaleString("es-PA", { minimumFractionDigits: 2, maximumFractionDigits: 2 });
+  }
+
+  function parseField(input, errorEl) {
+    var raw = input.value.trim();
+    errorEl.textContent = "";
+    if (raw === "") return null;
+    var val = parseFloat(raw);
+    if (isNaN(val) || val < 0) {
+      errorEl.textContent = "Ingrese un monto válido (número mayor o igual a 0).";
+      return null;
+    }
+    return val;
+  }
+
+  function setState(state) {
+    resultCard.classList.remove("state-approved", "state-rejected", "state-empty");
+    resultCard.classList.add(state);
+  }
+
+  function calcular() {
+    var ingreso = parseField(ingresoInput, ingresoError);
+    var obligaciones = parseField(obligacionesInput, obligacionesError);
+    var cuotaNueva = parseField(cuotaNuevaInput, cuotaNuevaError);
+
+    var camposCompletos = ingreso !== null && obligaciones !== null && cuotaNueva !== null;
+
+    if (!camposCompletos) {
+      setState("state-empty");
+      statusBadge.className = "status-badge pending";
+      statusIcon.innerHTML = ICON_DASH;
+      statusText.textContent = "Ingrese los datos del cliente";
+      ratioValue.className = "ratio-value pending";
+      ratioValue.textContent = "—";
+      meterFill.className = "meter-fill";
+      meterFill.style.width = "0%";
+      totalCuotas.textContent = formatMoney(0);
+      cuotaMaxima.textContent = formatMoney(0);
+      margenLabel.textContent = "Capacidad disponible";
+      margenValue.textContent = formatMoney(0);
+      officerNote.textContent = "Complete los tres campos para calcular la relación cuota/ingreso (RCI) y obtener la recomendación automática.";
+      return;
+    }
+
+    if (ingreso === 0) {
+      setState("state-rejected");
+      statusBadge.className = "status-badge rejected";
+      statusIcon.innerHTML = ICON_CROSS;
+      statusText.textContent = "RECHAZADO";
+      ratioValue.className = "ratio-value rejected";
+      ratioValue.textContent = "N/A";
+      meterFill.className = "meter-fill rejected";
+      meterFill.style.width = "100%";
+      totalCuotas.textContent = formatMoney(obligaciones + cuotaNueva);
+      cuotaMaxima.textContent = formatMoney(0);
+      margenLabel.textContent = "Déficit";
+      margenValue.textContent = formatMoney(obligaciones + cuotaNueva);
+      officerNote.textContent = "El ingreso mensual neto debe ser mayor a B/. 0.00 para calcular la capacidad de pago.";
+      return;
+    }
+
+    var total = obligaciones + cuotaNueva;
+    var rci = total / ingreso;
+    var rciPct = rci * 100;
+    var cuotaMax = ingreso * LIMITE_RCI;
+    var margen = cuotaMax - total;
+    var aprobado = rci <= LIMITE_RCI;
+
+    var meterPct = Math.min(rciPct, 100);
+
+    if (aprobado) {
+      setState("state-approved");
+      statusBadge.className = "status-badge approved";
+      statusIcon.innerHTML = ICON_CHECK;
+      statusText.textContent = "APROBADO";
+      ratioValue.className = "ratio-value approved";
+      meterFill.className = "meter-fill approved";
+      margenLabel.textContent = "Capacidad disponible restante";
+      officerNote.textContent = "La relación cuota/ingreso está dentro del límite del 30%. El cliente cuenta con capacidad de pago para asumir la nueva cuota, sujeto a las demás políticas de crédito vigentes.";
+    } else {
+      setState("state-rejected");
+      statusBadge.className = "status-badge rejected";
+      statusIcon.innerHTML = ICON_CROSS;
+      statusText.textContent = "RECHAZADO";
+      ratioValue.className = "ratio-value rejected";
+      meterFill.className = "meter-fill rejected";
+      margenLabel.textContent = "Exceso sobre el límite permitido";
+      officerNote.textContent = "La relación cuota/ingreso supera el límite máximo del 30%. El cliente no cuenta con capacidad de pago suficiente para la cuota evaluada, salvo excepción documentada según política interna.";
+    }
+
+    ratioValue.textContent = rciPct.toFixed(1) + "%";
+    meterFill.style.width = meterPct + "%";
+    totalCuotas.textContent = formatMoney(total);
+    cuotaMaxima.textContent = formatMoney(cuotaMax);
+    margenValue.textContent = formatMoney(Math.abs(margen));
+  }
+
+  [ingresoInput, obligacionesInput, cuotaNuevaInput].forEach(function (input) {
+    input.addEventListener("input", calcular);
+  });
+
+  calcular();
+})();
+</script>
+</body>
+</html>
